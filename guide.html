@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token Optimizer — Multiply Marketing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #0a0b0f;
+    --surface: #111318;
+    --surface2: #1a1d25;
+    --border: #2a2d38;
+    --accent: #00e5a0;
+    --accent2: #5b6bff;
+    --accent3: #ff6b35;
+    --warn: #ffc82e;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --code-bg: #161b24;
+    --red: #ff4d6d;
+    --green: #00e5a0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── Noise texture overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* ── Header ── */
+  header {
+    position: relative;
+    padding: 80px 60px 60px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(0,229,160,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-block;
+    background: rgba(0,229,160,0.1);
+    border: 1px solid rgba(0,229,160,0.3);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 20px;
+  }
+
+  h1 span.hi { color: var(--accent); }
+  h1 span.lo { color: var(--muted); }
+
+  .subtitle {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 600px;
+    font-weight: 400;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 40px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-num {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  /* ── Navigation ── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10, 11, 15, 0.9);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 60px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 16px 20px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  nav a:hover, nav a.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── Main layout ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px;
+  }
+
+  section { margin-bottom: 80px; }
+
+  h2 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  h2 .tag {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    background: rgba(91,107,255,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(91,107,255,0.3);
+    padding: 3px 8px;
+    border-radius: 2px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .section-desc {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 32px;
+    font-weight: 400;
+  }
+
+  /* ── Step cards ── */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .step-card:hover { border-color: rgba(0,229,160,0.3); }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+  }
+
+  .chevron { display: none; }
+
+  .step-num {
+    width: 32px;
+    height: 32px;
+    background: rgba(0,229,160,0.1);
+    border: 1px solid rgba(0,229,160,0.3);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+  .step-title {
+    font-size: 16px;
+    font-weight: 700;
+    flex: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .step-savings {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(0,229,160,0.08);
+    padding: 4px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .step-savings.warn { color: var(--warn); background: rgba(255,200,46,0.08); }
+  .step-savings.blue { color: var(--accent2); background: rgba(91,107,255,0.1); }
+
+  .chevron {
+    color: var(--muted);
+    transition: transform 0.2s;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .step-card.open .chevron { transform: rotate(180deg); }
+
+  .step-body {
+    display: block;
+    padding: 0 24px 24px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+
+  .step-body p {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 16px;
+    font-weight: 400;
+  }
+
+  /* ── Code blocks ── */
+  pre, code {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    overflow-x: auto;
+    color: var(--text);
+    line-height: 1.7;
+    cursor: text;
+  }
+
+  pre .comment { color: #c0cfe0; }
+  pre .cmd { color: var(--accent); }
+  pre .key { color: var(--accent2); }
+  pre .val { color: var(--warn); }
+  pre .str { color: #ffb07a; }
+
+  .code-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 12px 0 20px;
+  }
+
+  .code-wrap pre {
+    flex: 1;
+    margin: 0;
+    position: static;
+  }
+
+  .copy-btn {
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); background: rgba(0,229,160,0.08); }
+
+  /* ── Callout ── */
+  .callout {
+    background: rgba(0,229,160,0.08);
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .callout code {
+    color: var(--accent);
+    background: rgba(0,229,160,0.12);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .callout.warn {
+    background: rgba(255,200,46,0.08);
+    border-left-color: var(--warn);
+    color: var(--text);
+  }
+
+  .callout.warn code {
+    color: var(--warn);
+    background: rgba(255,200,46,0.12);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .callout.danger {
+    background: rgba(255,77,109,0.08);
+    border-left-color: var(--red);
+    color: var(--text);
+  }
+
+  /* ── Habit table ── */
+  .habit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .habit-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+
+  .habit-card:hover {
+    border-color: rgba(0,229,160,0.3);
+    transform: translateY(-2px);
+  }
+
+  .habit-icon { font-size: 24px; margin-bottom: 10px; }
+
+  .habit-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .habit-desc {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  /* ── Checklist ── */
+  .checklist {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 16px 0;
+  }
+
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .checklist .check {
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--surface2);
+  }
+
+  .checklist li.done .check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  .checklist li.done span { text-decoration: line-through; opacity: 0.5; }
+
+  /* ── Model picker ── */
+  .model-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+
+  .model-table th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .model-table td {
+    padding: 12px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(42,45,56,0.5);
+    color: var(--text);
+  }
+
+  .model-table tr:hover td { background: var(--surface2); }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .pill.green { background: rgba(0,229,160,0.15); color: var(--accent); }
+  .pill.blue  { background: rgba(91,107,255,0.15); color: var(--accent2); }
+  .pill.orange{ background: rgba(255,107,53,0.15); color: var(--accent3); }
+
+  /* ── Progress bar ── */
+  .progress-wrap {
+    background: var(--surface2);
+    border-radius: 100px;
+    height: 8px;
+    overflow: hidden;
+    margin: 6px 0;
+  }
+
+  .progress-bar {
+    height: 100%;
+    border-radius: 100px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 1s ease;
+  }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  footer .brand {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  footer .brand strong { color: var(--text); }
+
+  /* ── Install section ── */
+  .install-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .install-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    header, main, footer { padding: 40px 24px; }
+    nav { padding: 0 24px; }
+    h1 { font-size: 32px; }
+    .stats-row { gap: 24px; }
+    .stat-num { font-size: 28px; }
+  }
+
+  /* ── Tier stack (3-tier architecture) ── */
+  .tier-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 16px 0;
+  }
+
+  .tier {
+    border-radius: 8px;
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+  }
+
+  .tier-1 { background: rgba(0,229,160,0.06); border-color: rgba(0,229,160,0.3); }
+  .tier-2 { background: rgba(91,107,255,0.06); border-color: rgba(91,107,255,0.3); }
+  .tier-3 { background: rgba(255,107,53,0.06); border-color: rgba(255,107,53,0.3); }
+
+  .tier-arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+    letter-spacing: 0;
+  }
+
+  .tier-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .tier-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+  }
+
+  .t1 { background: rgba(0,229,160,0.15); color: var(--accent); }
+  .t2 { background: rgba(91,107,255,0.15); color: var(--accent2); }
+  .t3 { background: rgba(255,107,53,0.15); color: var(--accent3); }
+
+  .tier-label .tier-file {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .tier-when {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  .tier-content {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .tier-content strong { color: var(--text); }
+
+  .tier-limit {
+    margin-top: 6px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+  }
+
+  .tier-files {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tier-file-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  .tier-file-row code {
+    font-family: 'Space Mono', monospace;
+    color: var(--accent2);
+    background: rgba(91,107,255,0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .tier-file-row span { color: var(--muted); }
+
+  /* ── File tree ── */
+  .file-tree {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin: 12px 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .ft-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+
+  .ft-indent1 { color: var(--border); padding-left: 0; white-space: pre; }
+  .ft-indent2 { color: var(--border); white-space: pre; }
+
+  .ft-name.root  { color: var(--text); font-weight: 700; }
+  .ft-name.dir   { color: var(--accent2); }
+  .ft-name.claude{ color: var(--accent); font-weight: 700; }
+  .ft-name.file  { color: var(--muted); }
+
+  .ft-note {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
+  /* ── Terminal block ── */
+  .terminal-block {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 12px 0;
+  }
+
+  .terminal-bar {
+    background: #1c2028;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tb-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .tb-dot.red    { background: #ff5f57; }
+  .tb-dot.yellow { background: #ffbd2e; }
+  .tb-dot.green  { background: #28c840; }
+
+  .tb-title {
+    flex: 1;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .tb-copy {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tb-copy:hover { color: var(--accent); border-color: var(--accent); }
+
+  .terminal-body {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tb-line {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tb-prompt { color: var(--accent); font-weight: 700; }
+  .tb-cmd    { color: var(--text); }
+
+  .tb-out { padding-left: 16px; }
+  .tb-summary { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  .tb-key  { color: var(--text); min-width: 200px; }
+  .tb-sep  { color: #2a3040; letter-spacing: -2px; }
+  .tb-val  { color: var(--warn); }
+  .tb-val.good { color: var(--accent); }
+  .tb-status { color: var(--muted); }
+  .tb-status.muted { color: #4a5568; }
+
+  /* ── Animations ── */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-card, .habit-card {
+    animation: fadeIn 0.4s ease both;
+  }
+
+  .glow {
+    text-shadow: 0 0 30px rgba(0,229,160,0.4);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">Multiply Marketing · Claude Token Optimizer v1.0</div>
+  <h1>
+    <span class="hi glow">Stop burning tokens.</span><br>
+    <span class="lo">Start coding smarter.</span>
+  </h1>
+  <p class="subtitle">A practical toolkit to cut Claude API costs by 70–90% — with enforced habits, Graphify integration, and one-command setup for your entire dev team.</p>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-num">71x</div>
+      <div class="stat-label">Token reduction with Graphify</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">62%</div>
+      <div class="stat-label">Saved with lean CLAUDE.md</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">~$120</div>
+      <div class="stat-label">Avg monthly savings / dev</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">5min</div>
+      <div class="stat-label">Setup time</div>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <a href="#install" class="active">Install</a>
+  <a href="#graphify">Graphify</a>
+  <a href="#claude-md">CLAUDE.md</a>
+  <a href="#session">Session Habits</a>
+  <a href="#models">Model Selection</a>
+  <a href="#prompts">Prompt Patterns</a>
+  <a href="#checklist">Checklist</a>
+</nav>
+
+<main>
+
+<!-- ═══ INSTALL ═══════════════════════════════════════════════ -->
+<section id="install">
+  <h2>Quick Install <span class="tag">Start Here</span></h2>
+  <p class="section-desc">One command installs everything: scripts, hooks, aliases, templates, and Graphify.</p>
+
+  <div class="install-box">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Run this in your terminal:</p>
+    <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="comment"># Clone the toolkit</span>
+<span class="cmd">git clone</span> https://github.com/multiply-marketing/token-optimizer ~/.token-optimizer-src
+<span class="cmd">cd</span> ~/.token-optimizer-src
+
+<span class="comment"># Run installer</span>
+<span class="cmd">bash</span> install.sh
+
+<span class="comment"># Reload your shell</span>
+<span class="cmd">source</span> ~/.zshrc  <span class="comment"># or ~/.bashrc</span></pre>
+
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Or manually copy the toolkit into any project:</p>
+    <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="comment"># Copy optimized CLAUDE.md to your project</span>
+<span class="cmd">cp</span> ~/.token-optimizer/templates/CLAUDE.md ./CLAUDE.md
+
+<span class="comment"># Install session hooks</span>
+<span class="cmd">mkdir -p</span> .claude/hooks
+<span class="cmd">cp</span> ~/.token-optimizer/hooks/session-start.sh .claude/hooks/
+
+<span class="comment"># Install git hooks (auto-rebuild graph on commit)</span>
+<span class="cmd">cp</span> ~/.token-optimizer/hooks/post-commit .git/hooks/post-commit
+<span class="cmd">chmod +x</span> .git/hooks/post-commit</pre>
+
+    <div class="callout">After install, you get 4 new commands: <code>newfeature</code> · <code>tokencheck</code> · <code>tokenstats</code> · <code>graphrebuild</code></div>
+  </div>
+</section>
+
+<!-- ═══ GRAPHIFY ══════════════════════════════════════════════ -->
+<section id="graphify">
+  <h2>Graphify Setup <span class="tag">71x Savings</span></h2>
+  <p class="section-desc">The single highest-impact optimization. Instead of Claude grepping every file, it reads a compact knowledge graph.</p>
+
+  <div class="steps">
+
+    <div class="step-card open">
+      <div class="step-header">
+        <div class="step-num">01</div>
+        <div class="step-title">Install Graphify</div>
+        <div class="step-savings">71x token reduction</div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <p>Graphify builds a persistent knowledge graph from your codebase. Code is parsed locally via AST — no source code leaves your machine.</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="comment"># Install (note the double-y)</span>
+<span class="cmd">pip install</span> graphifyy
+
+<span class="comment"># Verify</span>
+<span class="cmd">graphify</span> --version</pre>
+        <div class="callout warn">The PyPI package is <strong>graphifyy</strong> (double-y). <strong>graphify</strong> (single-y) is a different, unrelated library.</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">02</div>
+        <div class="step-title">Build your first graph</div>
+        <div class="step-savings blue">one-time setup</div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <p>Run this in your project root. The first run costs tokens (semantic extraction), but every query after uses the compact graph instead of raw files.</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="comment"># Build the graph from project root</span>
+<span class="cmd">cd</span> /your/project
+<span class="cmd">graphify</span> .
+
+<span class="comment"># Outputs:</span>
+<span class="comment">#   graphify-out/GRAPH_REPORT.md  ← Claude reads this</span>
+<span class="comment">#   graphify-out/graph.json       ← persistent state</span>
+<span class="comment">#   graphify-out/graph.html       ← interactive visualizer</span></pre>
+
+        <div class="callout">After this, type <code>/graphify .</code> inside Claude Code to activate it for the session.</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">03</div>
+        <div class="step-title">Install the Claude Code hook</div>
+        <div class="step-savings">auto-activates per session</div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <p>This PreToolUse hook fires before every Grep/Glob call. It tells Claude to check the graph first instead of scanning raw files.</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="comment"># Add to .claude/settings.json</span>
+{
+  <span class="key">"hooks"</span>: {
+    <span class="key">"PreToolUse"</span>: [
+      {
+        <span class="key">"matcher"</span>: <span class="str">"Glob|Grep|Read"</span>,
+        <span class="key">"hooks"</span>: [{
+          <span class="key">"type"</span>: <span class="str">"command"</span>,
+          <span class="key">"command"</span>: <span class="str">"echo 'graphify: GRAPH_REPORT.md exists. Consult it before raw file search.'"</span>
+        }]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">04</div>
+        <div class="step-title">Auto-rebuild on commit</div>
+        <div class="step-savings blue">git hook</div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <p>The post-commit hook rebuilds the graph automatically after code changes. AST-only rebuilds (code files) take under 5 seconds with no LLM tokens spent.</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="comment"># Install the git hook</span>
+<span class="cmd">cp</span> ~/.token-optimizer/hooks/post-commit .git/hooks/post-commit
+<span class="cmd">chmod +x</span> .git/hooks/post-commit
+
+<span class="comment"># Or use graphify's built-in hook installer</span>
+<span class="cmd">graphify hook install</span></pre>
+
+        <div class="callout warn">Keep the graph fresh. A stale graph (3+ days old) gives Claude outdated structural info. The <code>tokencheck</code> command will warn you.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ CLAUDE.MD ═════════════════════════════════════════════ -->
+<section id="claude-md">
+  <h2>CLAUDE.md Architecture <span class="tag">62% Saved</span></h2>
+  <p class="section-desc">CLAUDE.md is loaded on <em>every single message</em>. A 2,000-token CLAUDE.md costs 2,000 tokens × every message in every session. Keep it surgical.</p>
+
+  <div class="steps">
+
+    <!-- 01 — 3-tier architecture -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">01</div>
+        <div class="step-title">The 3-tier architecture</div>
+        <div class="step-savings">target: &lt;600 tokens</div>
+      </div>
+      <div class="step-body">
+        <p>Structure your context in three tiers. Only Tier 1 loads every message. Tiers 2 and 3 load on demand.</p>
+
+        <div class="tier-stack">
+          <div class="tier tier-1">
+            <div class="tier-label">
+              <span class="tier-badge t1">TIER 1</span>
+              <span class="tier-file">CLAUDE.md</span>
+              <span class="tier-when">loads every message</span>
+            </div>
+            <div class="tier-content">Project rules · model guidance · file map references</div>
+            <div class="tier-limit">&lt; 600 tokens — keep it lean</div>
+          </div>
+
+          <div class="tier-arrow">▼</div>
+
+          <div class="tier tier-2">
+            <div class="tier-label">
+              <span class="tier-badge t2">TIER 2</span>
+              <span class="tier-file">docs/*.md</span>
+              <span class="tier-when">loads on demand per task</span>
+            </div>
+            <div class="tier-files">
+              <div class="tier-file-row"><code>docs/api-routes.md</code><span>only loaded for API work</span></div>
+              <div class="tier-file-row"><code>docs/schema.md</code><span>only loaded for DB work</span></div>
+              <div class="tier-file-row"><code>docs/testing-guide.md</code><span>only loaded for test work</span></div>
+            </div>
+          </div>
+
+          <div class="tier-arrow">▼</div>
+
+          <div class="tier tier-3">
+            <div class="tier-label">
+              <span class="tier-badge t3">TIER 3</span>
+              <span class="tier-file">graphify-out/GRAPH_REPORT.md</span>
+              <span class="tier-when">queried per question</span>
+            </div>
+            <div class="tier-content">Knowledge graph — <strong>~1,700 tokens</strong> vs ~100,000+ naive file scanning</div>
+          </div>
+        </div>
+
+        <div class="callout" style="margin-top:20px;">Ready-to-use template included: <code>~/.token-optimizer/templates/CLAUDE.md</code></div>
+      </div>
+    </div>
+
+    <!-- 02 — Monorepo -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">02</div>
+        <div class="step-title">Monorepo: split CLAUDE.md per subdirectory</div>
+        <div class="step-savings blue">lazy loading</div>
+      </div>
+      <div class="step-body">
+        <p>Subdirectory CLAUDE.md files only load when Claude navigates into that directory. Use this to scope context to where it's needed.</p>
+
+        <div class="file-tree">
+          <div class="ft-row"><span class="ft-name root">project/</span></div>
+          <div class="ft-row"><span class="ft-indent1">├──</span><span class="ft-name claude">CLAUDE.md</span><span class="ft-note">global: rules, model guide, file map</span></div>
+          <div class="ft-row"><span class="ft-indent1">├──</span><span class="ft-name dir">apps/</span></div>
+          <div class="ft-row"><span class="ft-indent2">│ ├──</span><span class="ft-name dir">frontend/</span><span class="ft-name claude">CLAUDE.md</span><span class="ft-note">React rules — only loads for frontend work</span></div>
+          <div class="ft-row"><span class="ft-indent2">│ └──</span><span class="ft-name dir">backend/</span><span class="ft-name claude">CLAUDE.md</span><span class="ft-note">API rules — only loads for backend work</span></div>
+          <div class="ft-row"><span class="ft-indent1">├──</span><span class="ft-name dir">packages/</span></div>
+          <div class="ft-row"><span class="ft-indent2">│ └──</span><span class="ft-name dir">shared/</span><span class="ft-name claude">CLAUDE.md</span><span class="ft-note">Shared lib rules</span></div>
+          <div class="ft-row"><span class="ft-indent1">└──</span><span class="ft-name dir">docs/</span></div>
+          <div class="ft-row"><span class="ft-indent2">&nbsp; ├──</span><span class="ft-name file">schema.md</span></div>
+          <div class="ft-row"><span class="ft-indent2">&nbsp; └──</span><span class="ft-name file">api-routes.md</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 — tokencheck -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">03</div>
+        <div class="step-title">Audit &amp; enforce with tokencheck</div>
+        <div class="step-savings warn">enforcement tool</div>
+      </div>
+      <div class="step-body">
+        <p>Run <code>tokencheck</code> anytime to see how big your CLAUDE.md is and what's eating tokens. Recommended: add it to your team's onboarding checklist.</p>
+
+        <div class="terminal-block">
+          <div class="terminal-bar">
+            <span class="tb-dot red"></span><span class="tb-dot yellow"></span><span class="tb-dot green"></span>
+            <span class="tb-title">terminal</span>
+            <button class="tb-copy" onclick="copyTerminal(this)">copy</button>
+          </div>
+          <div class="terminal-body">
+            <div class="tb-line"><span class="tb-prompt">$</span><span class="tb-cmd"> tokencheck</span></div>
+            <div class="tb-line tb-out"><span class="tb-key">CLAUDE.md</span><span class="tb-sep">·····</span><span class="tb-val good">~312 tokens</span><span class="tb-status">✓ Good</span></div>
+            <div class="tb-line tb-out"><span class="tb-key">docs/schema.md</span><span class="tb-sep">·</span><span class="tb-val">~880 tokens</span><span class="tb-status muted">(on-demand ✓)</span></div>
+            <div class="tb-line tb-out tb-summary"><span class="tb-key">Fixed context / session</span><span class="tb-sep">·</span><span class="tb-val good">~312 tokens</span><span class="tb-status">👍</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ SESSION HABITS ════════════════════════════════════════ -->
+<section id="session">
+  <h2>Session Habits <span class="tag">Daily Practice</span></h2>
+  <p class="section-desc">These habits compound. Each one is small. Together they cut usage by 60-90%.</p>
+
+  <div class="habit-grid">
+    <div class="habit-card">
+      <div class="habit-icon">🔄</div>
+      <div class="habit-title">Clear between unrelated tasks</div>
+      <div class="habit-desc">Run <code>/clear</code> when switching to a completely different task. Stale context from the previous task gets re-read on every message.</div>
+    </div>
+    <div class="habit-card">
+      <div class="habit-icon">🗜️</div>
+      <div class="habit-title">Compact before big operations</div>
+      <div class="habit-desc">Run <code>/compact</code> when you're about to start something large. It squeezes the conversation to just decisions, changes, and open questions.</div>
+    </div>
+    <div class="habit-card">
+      <div class="habit-icon">📦</div>
+      <div class="habit-title">Batch your questions</div>
+      <div class="habit-desc">Instead of 3 follow-up messages, write one message with all 3 questions. Every separate message forces Claude to reprocess the entire history.</div>
+    </div>
+    <div class="habit-card">
+      <div class="habit-icon">✂️</div>
+      <div class="habit-title">Request diffs, not full files</div>
+      <div class="habit-desc">Add to your prompt: <em>"Output as a diff, not the full file."</em> A 300-line file rewrite costs 5–10x more than a targeted diff.</div>
+    </div>
+    <div class="habit-card">
+      <div class="habit-icon">🎯</div>
+      <div class="habit-title">Reference by location, don't paste</div>
+      <div class="habit-desc">Instead of pasting code, say: <em>"In auth.ts, lines 42–58 — fix the race condition."</em> Claude already has the file. Re-pasting is pure waste.</div>
+    </div>
+    <div class="habit-card">
+      <div class="habit-icon">⚡</div>
+      <div class="habit-title">CLI over MCP tools</div>
+      <div class="habit-desc">Use <code>gh</code> CLI instead of GitHub MCP. CLI returns targeted output. MCP dumps full JSON blobs into context — often 10–100x bigger.</div>
+    </div>
+    <div class="habit-card">
+      <div class="habit-icon">🚀</div>
+      <div class="habit-title">Start every session with newfeature</div>
+      <div class="habit-desc">The <code>newfeature</code> command generates an optimized session prompt, picks the right model, checks graph freshness, and copies it to your clipboard.</div>
+    </div>
+    <div class="habit-card">
+      <div class="habit-icon">🧹</div>
+      <div class="habit-title">Don't thank Claude</div>
+      <div class="habit-desc">Sending "Thanks!" or "That's perfect!" after a long session re-sends thousands of tokens of history for a response that adds zero value.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MODEL SELECTION ═══════════════════════════════════════ -->
+<section id="models">
+  <h2>Model Selection Guide <span class="tag">Up to 70% Cost Cut</span></h2>
+  <p class="section-desc">Opus costs 5× more than Sonnet. Most daily tasks don't need it. The rule: start on Sonnet, escalate only when you need deep reasoning.</p>
+
+  <table class="model-table">
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>Use For</th>
+        <th>Cost Level</th>
+        <th>Switch Command</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Haiku</strong></td>
+        <td>Renaming, formatting, quick lookups, docstrings, typos</td>
+        <td><span class="pill green">Low</span></td>
+        <td><code>/model haiku</code></td>
+      </tr>
+      <tr>
+        <td><strong>Sonnet</strong></td>
+        <td>Tests, standard edits, explaining code, daily work (80% of tasks)</td>
+        <td><span class="pill blue">Medium</span></td>
+        <td><code>/model sonnet</code></td>
+      </tr>
+      <tr>
+        <td><strong>Opus</strong></td>
+        <td>Complex architecture decisions, tricky bugs, multi-file refactors</td>
+        <td><span class="pill orange">High</span></td>
+        <td><code>/model opus</code></td>
+      </tr>
+      <tr>
+        <td><strong>opusplan</strong></td>
+        <td>Complex planning — uses Opus for plan, Sonnet for execution</td>
+        <td><span class="pill blue">Medium-High</span></td>
+        <td><code>/model opusplan</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">The <code>newfeature</code> script auto-recommends the right model based on what you're working on (detected from task description keywords).</div>
+
+  <div class="callout warn">Extended thinking is enabled by default and can burn tens of thousands of tokens per request on complex tasks. For simpler tasks, disable it: <code>/config thinking false</code> or lower the budget: <code>MAX_THINKING_TOKENS=4000</code></div>
+</section>
+
+<!-- ═══ PROMPT PATTERNS ════════════════════════════════════════ -->
+<section id="prompts">
+  <h2>Prompt Patterns <span class="tag">Copy-Paste Ready</span></h2>
+  <p class="section-desc">These session-opening prompts enforce token-efficient behavior from the first message.</p>
+
+  <div class="steps">
+
+    <div class="step-card open">
+      <div class="step-header">
+        <div class="step-num">▶</div>
+        <div class="step-title">Universal session opener</div>
+        <div class="step-savings">paste at session start</div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <p>Paste this as your first message in every Claude Code session (or let <code>newfeature</code> generate it for you):</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">copy</button>Task: [DESCRIBE YOUR TASK IN 1-2 SENTENCES]
+
+Rules for this session:
+- Output diffs only, not full files
+- No preamble, no summaries unless asked
+- Batch all file reads before responding
+- If a knowledge graph exists (graphify-out/GRAPH_REPORT.md), 
+  consult it before grepping raw files
+- Reference code by file:line range, don't echo it back</pre>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">▶</div>
+        <div class="step-title">Compact with custom focus</div>
+        <div class="step-savings">when context gets heavy</div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <pre><button class="copy-btn" onclick="copyCode(this)">copy</button><span class="comment"># In Claude Code — tell it what to preserve</span>
+/compact Focus on: code changes made, open bugs, next steps.
+         Discard: all tool outputs, file contents, exploration threads.</pre>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">▶</div>
+        <div class="step-title">Targeted bug fix (no pasting)</div>
+        <div class="step-savings">reference by location</div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <pre><button class="copy-btn" onclick="copyCode(this)">copy</button">In [filename.ts], lines [X–Y] — [describe the issue].
+Root cause first, then fix. Output as a diff only.</pre>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">▶</div>
+        <div class="step-title">Batched feature request</div>
+        <div class="step-savings">batch = 1 context reload</div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <pre><button class="copy-btn" onclick="copyCode(this)">copy</button">Do all of these in one pass:
+1. Add input validation to [function] in [file]
+2. Update the corresponding unit test in [test file]
+3. Add a JSDoc comment to [function]
+
+Output as a single diff covering all three.</pre>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ CHECKLIST ═════════════════════════════════════════════ -->
+<section id="checklist">
+  <h2>Team Onboarding Checklist <span class="tag">Interactive</span></h2>
+  <p class="section-desc">Share this with every developer joining your team. Track progress interactively.</p>
+
+  <div class="install-box">
+    <h3 style="font-size:16px;margin-bottom:20px;font-weight:700;">Setup Checklist — Check off as you go</h3>
+
+    <ul class="checklist" id="checklist">
+      <li onclick="toggleCheck(this)"><div class="check">✓</div><span>Install toolkit: <code>bash install.sh</code> from the repo</span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Run <code>source ~/.zshrc</code> to activate aliases</span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Copy <code>CLAUDE.md</code> template to your project root</span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Fill in project name, stack, and team in <code>CLAUDE.md</code></span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Run <code>tokencheck</code> — verify CLAUDE.md is under 600 tokens</span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Install Graphify: <code>pip install graphifyy</code></span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Build knowledge graph: <code>graphify .</code> in project root</span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Install git hooks: <code>graphify hook install</code></span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Install session hook: <code>cp ~/.token-optimizer/hooks/session-start.sh .claude/hooks/</code></span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Run first session with <code>newfeature</code> — verify prompt is copied</span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Read the 8 session habits above and commit to daily practice</span></li>
+      <li onclick="toggleCheck(this)"><div class="check"></div><span>Set default model in session: <code>/model sonnet</code></span></li>
+    </ul>
+
+    <div id="progress-section" style="margin-top:24px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px;">
+        <span>Progress</span>
+        <span id="progress-label">1 / 12 complete</span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progress-bar" style="width:8%"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="brand"><strong>Token Optimizer</strong> · Multiply Marketing · v1.0</div>
+  <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;">
+    Claude Sonnet 4 · Anthropic API
+  </div>
+</footer>
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.closest('pre');
+    selectPre(pre);
+    btn.textContent = 'press Cmd+C';
+    btn.style.color = 'var(--warn)';
+    setTimeout(() => { btn.textContent = 'copy'; btn.style.color = ''; }, 2500);
+  }
+
+  function selectPre(pre) {
+    const range = document.createRange();
+    // Select only text nodes, skipping the copy button
+    const walker = document.createTreeWalker(pre, NodeFilter.SHOW_TEXT);
+    let first = null, last = null, node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement.classList.contains('copy-btn')) continue;
+      if (!first) first = node;
+      last = node;
+    }
+    if (first && last) {
+      range.setStart(first, 0);
+      range.setEnd(last, last.length);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+
+  // Restructure: extract copy button from each pre, wrap in .code-wrap
+  document.querySelectorAll('pre').forEach(pre => {
+    const btn = pre.querySelector('.copy-btn');
+    if (btn) pre.removeChild(btn);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'code-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    if (btn) wrap.appendChild(btn);
+
+    // Click code block to select all text
+    pre.addEventListener('click', function() { selectPre(this); });
+  });
+
+  function copyTerminal(btn) {
+    const body = btn.closest('.terminal-block').querySelector('.terminal-body');
+    const range = document.createRange();
+    range.selectNodeContents(body);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    btn.textContent = 'Cmd+C';
+    btn.style.color = 'var(--warn)';
+    setTimeout(() => { btn.textContent = 'copy'; btn.style.color = ''; sel.removeAllRanges(); }, 2500);
+  }
+
+  function toggleCheck(li) {
+    li.classList.toggle('done');
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const items = document.querySelectorAll('#checklist li');
+    const done = document.querySelectorAll('#checklist li.done').length;
+    const pct = Math.round((done / items.length) * 100);
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = `${done} / ${items.length} complete`;
+  }
+
+  // Nav active state
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('nav a');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(a => {
+          a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id);
+        });
+      }
+    });
+  }, { rootMargin: '-40% 0px -55%' });
+  sections.forEach(s => observer.observe(s));
+
+  // Initialize progress
+  updateProgress();
+</script>
+
+</body>
+</html>
