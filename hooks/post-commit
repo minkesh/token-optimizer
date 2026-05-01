@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# ============================================================
+#  post-commit — Auto-rebuild Graphify after commits
+#  Install: cp this to .git/hooks/post-commit && chmod +x
+#  Or run: bash install.sh (handles this automatically)
+# ============================================================
+
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+GRAPH_DIR="$PROJECT_ROOT/graphify-out"
+LOG="$HOME/.token-optimizer/logs/graph-rebuild.log"
+
+# Only rebuild if graph exists (opt-in)
+[ -d "$GRAPH_DIR" ] || exit 0
+
+# Check if any source files changed (skip for docs-only commits)
+CHANGED_CODE=$(git diff-tree --no-commit-id -r --name-only HEAD 2>/dev/null \
+  | grep -E '\.(ts|js|py|go|rs|java|rb|cs)$' | wc -l)
+
+if [ "$CHANGED_CODE" -gt 0 ]; then
+  echo "↻  Rebuilding knowledge graph (${CHANGED_CODE} code files changed)..."
+  if command -v graphify &>/dev/null; then
+    cd "$PROJECT_ROOT" && graphify . --update >> "$LOG" 2>&1
+    echo "✓  Graph updated"
+  else
+    echo "⚠  graphify not found — install with: pip install graphifyy"
+  fi
+fi
+
+exit 0
